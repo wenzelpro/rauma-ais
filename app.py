@@ -1,4 +1,4 @@
-# app.py
+#14 app.py
 from __future__ import annotations
 import os
 import json
@@ -78,7 +78,7 @@ def get_ships():
         return jsonify({"error": str(e)}), 400
 
     now = datetime.now(timezone.utc)
-    msgtimefrom = now - timedelta(days=14)  # API supports last 14 days
+    msgtimefrom = now - timedelta(hous=1)  # API supports last 14 days
     try:
         mmsi_list = bw_client.find_mmsi_in_area(
             polygon_geometry=geom,
@@ -106,7 +106,7 @@ def post_ships():
         return jsonify({"error": str(e)}), 400
 
     now = datetime.now(timezone.utc)
-    msgtimefrom = now - timedelta(days=14)
+    msgtimefrom = now - timedelta(hours=1)
 
     try:
         mmsi_list = bw_client.find_mmsi_in_area(
