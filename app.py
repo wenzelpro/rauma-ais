@@ -119,7 +119,7 @@ def post_ships():
         logger.exception("BarentsWatch error")
         return jsonify({"error": f"Upstream error: {e}"}), 502
 
-    return jsonify({"count": len(features), "features": features, "area_km2": round(area_km2, 3)}})
+    return jsonify({"count": len(features), "features": features, "area_km2": round(area_km2, 3)})
 
 if __name__ == "__main__":
     # For local dev only. In Heroku, gunicorn (Procfile) will run the app.
