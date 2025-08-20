@@ -1,8 +1,6 @@
 # barentswatch.py
 from __future__ import annotations
-import os
 import time
-import json
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timezone
 
