@@ -1,31 +1,30 @@
 <!doctype html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="utf-8" />
-    <title>Vessel Traffic</title>
+    <meta charset="utf-8">
+    <title>BarentsWatch AIS – Ships in Area</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 2rem; line-height: 1.5; }
+      code, pre { background: #f6f8fa; padding: 0.25rem 0.4rem; border-radius: 6px; }
+      .box { background: #f8fafc; padding: 1rem 1.25rem; border-radius: 10px; border: 1px solid #e5e7eb; }
+    </style>
   </head>
   <body>
-    <h1>Current Vessels</h1>
-    {% if vessels %}
-    <table border="1" cellspacing="0" cellpadding="4">
-      <thead>
-        <tr>
-          <th>MMSI</th>
-          <th>Name</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for vessel in vessels %}
-        <tr>
-          <td>{{ vessel.mmsi }}</td>
-          <td>{{ vessel.name or 'Unknown' }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p>No vessels detected.</p>
-    {% endif %}
+    <h1>BarentsWatch AIS – Ships in Area</h1>
+    <p>Dette er et minimalt API som leser et GeoJSON-område (<code>{{ default_geojson_path }}</code>)
+       og returnerer en liste over skip innenfor de siste 14 dagene.</p>
+
+    <div class="box">
+      <h3>Endepunkt</h3>
+      <ul>
+        <li><code>GET /health</code> – helsesjekk</li>
+        <li><code>GET /ships</code> – bruker <code>{{ default_geojson_path }}</code> som område</li>
+        <li><code>POST /ships</code> – send en <code>geometry</code> (Polygon/MultiPolygon) i body</li>
+      </ul>
+      <p>Maks areal: <strong>{{ max_area_km2 }}</strong> km²</p>
+    </div>
+
+    <p>Konfigurasjon via miljøvariabler: <code>BW_CLIENT_ID</code>, <code>BW_CLIENT_SECRET</code>, (valgfritt) <code>BW_ACCESS_TOKEN</code>, <code>GEOJSON_PATH</code>, <code>MAX_AREA_KM2</code>.</p>
   </body>
 </html>
-

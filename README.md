@@ -1,67 +1,44 @@
-# AIS Traffic Monitor
+# BarentsWatch AIS – Ships in Area (Heroku-ready)
 
-This project provides a small Flask web application that queries the
-BarentsWatch historical AIS API for vessel traffic inside a polygon
-defined in `map.geojson`. A background thread refreshes the data every
-ten minutes and reports newly detected vessels to the log. Visiting the
-root URL displays the current list of vessels.
+Et lite Flask-API som returnerer skip i et område definert av `map.geojson`, ved å bruke BarentsWatch AIS.
 
-## Requirements
+## Endepunkt
+- `GET /health` – enkel helsesjekk
+- `GET /ships` – leser geojson fra `map.geojson` (kan overstyres med `GEOJSON_PATH`)
+- `POST /ships` – send en GeoJSON `geometry` (Polygon/MultiPolygon) i request-body
 
-* Python 3.11+
-* `Flask`
-* `gunicorn`
-* `requests`
-* `shapely`
-
-Install dependencies:
-
+## Kjør lokalt
 ```bash
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
+# (valgfritt) rediger .env
+python app.py
 ```
 
-## Usage
-
-Set the BarentsWatch access token in the environment:
-
+## Deploy til Heroku
 ```bash
-export BW_ACCESS_TOKEN="<access token>"
+heroku create
+heroku buildpacks:set heroku/python
+heroku config:set BW_CLIENT_ID="wenzel.prokosch%40andalsnes-avis.no%3ARauma%20AIS" \
+                   BW_CLIENT_SECRET="myxdag-gafjoq-Purze0"
+# valgfritt kortlivet token:
+# heroku config:set BW_ACCESS_TOKEN="..."
+
+git init
+git add .
+git commit -m "Initial"
+git branch -M main
+heroku git:remote -a $(heroku apps:info -s | grep web_url | cut -d= -f2 | sed 's#https://##; s#/.##')
+git push heroku main
+heroku open
 ```
 
-Run the application locally:
+## Sikkerhet
+Ikke sjekk inn `.env`/hemmeligheter i git. I Heroku settes hemmeligheter med `heroku config:set`. Client Credentials anbefales over statiske tokens (tokens utløper typisk etter 1 time).
 
-```bash
-python app.py  # development server
-# or
-gunicorn app:app  # production-style server
-```
-
-Then open <http://localhost:5000> to view the vessel list.
-
-## Deployment on Heroku
-
-1. Create the application:
-
-   ```bash
-   heroku create
-   ```
-
-2. Set the BarentsWatch access token:
-
-   ```bash
-   heroku config:set BW_ACCESS_TOKEN="<access token>"
-   ```
-
-3. Push the code to Heroku:
-
-   ```bash
-   git push heroku main
-   ```
-
-4. Open the app in a browser:
-
-   ```bash
-   heroku open
-   ```
-
-Heroku will run the app using the provided `Procfile`.
+## Miljøvariabler
+- `BW_CLIENT_ID`, `BW_CLIENT_SECRET` – OAuth2 Client Credentials
+- `BW_ACCESS_TOKEN` – valgfritt; bypasser client credentials (kortlivet)
+- `GEOJSON_PATH` – sti til standard GeoJSON
+- `MAX_AREA_KM2` – maks areal i km² (default 500)

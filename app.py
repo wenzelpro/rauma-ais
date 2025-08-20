@@ -1,82 +1,126 @@
-import json
+# app.py
+from __future__ import annotations
 import os
-import threading
-import time
-from typing import Dict, List, Set
+import json
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Any, List
 
-import requests
-from flask import Flask, render_template
-from shapely.geometry import shape
+from flask import Flask, jsonify, request, render_template
+from dotenv import load_dotenv
 
-AIS_URL = "https://historical.ais.barentswatch.no/api/v2/TrafficDataByPolygon"
+from barentswatch import BarentsWatchClient
+from geometry_utils import (
+    ensure_valid_polygon_geometry,
+    geometry_area_km2,
+)
 
+# Load environment (local dev)
+load_dotenv()
 
-def load_polygon(path: str) -> str:
-    """Load polygon from a GeoJSON file and return it as WKT string."""
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    geom = shape(data["features"][0]["geometry"])
-    return geom.wkt
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+logger = logging.getLogger("barentswatch-geoapp")
 
-def fetch_vessels(token: str, polygon_wkt: str) -> List[Dict]:
-    """Fetch vessel traffic within the polygon."""
-    headers = {"Authorization": f"Bearer {token}"}
-    params = {"polygon": polygon_wkt}
-    resp = requests.get(AIS_URL, headers=headers, params=params, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
+app = Flask(__name__)
 
+# Configuration
+DEFAULT_GEOJSON_PATH = os.getenv("GEOJSON_PATH", "map.geojson")
+MAX_AREA_KM2 = float(os.getenv("MAX_AREA_KM2", "500"))
 
-def create_app() -> Flask:
-    """Create Flask application with background vessel updater."""
+# Initialize BarentsWatch client (token management inside)
+bw_client = BarentsWatchClient(
+    client_id=os.getenv("BW_CLIENT_ID"),
+    client_secret=os.getenv("BW_CLIENT_SECRET"),
+    static_access_token=os.getenv("BW_ACCESS_TOKEN"),
+    token_url=os.getenv("BW_TOKEN_URL", "https://id.barentswatch.no/connect/token"),
+)
 
-    app = Flask(__name__)
+def _load_default_geometry() -> Dict[str, Any]:
+    """Load geometry from DEFAULT_GEOJSON_PATH (Polygon or MultiPolygon)."""
+    if not os.path.exists(DEFAULT_GEOJSON_PATH):
+        raise FileNotFoundError(f"GeoJSON file not found: {DEFAULT_GEOJSON_PATH}")
+    with open(DEFAULT_GEOJSON_PATH, "r", encoding="utf-8") as f:
+        gj = json.load(f)
+    # Allow either a FeatureCollection/Feature or direct geometry
+    if gj.get("type") == "FeatureCollection":
+        if not gj.get("features"):
+            raise ValueError("FeatureCollection has no features")
+        geom = gj["features"][0].get("geometry")
+    elif gj.get("type") == "Feature":
+        geom = gj.get("geometry")
+    else:
+        geom = gj  # assume bare geometry
+    geom = ensure_valid_polygon_geometry(geom)
+    return geom
 
-    polygon_wkt = load_polygon("map.geojson")
-    token = os.environ.get("BW_ACCESS_TOKEN")
+def _validate_area(geom: Dict[str, Any]) -> float:
+    area_km2 = geometry_area_km2(geom)
+    if area_km2 > MAX_AREA_KM2:
+        raise ValueError(f"Area too large: {area_km2:.1f} km^2 (max {MAX_AREA_KM2} km^2)")
+    return area_km2
 
-    current_vessels: List[Dict] = []
-    seen: Set[str] = set()
+@app.get("/")
+def index():
+    return render_template("index.html",
+                           max_area_km2=MAX_AREA_KM2,
+                           default_geojson_path=DEFAULT_GEOJSON_PATH)
 
-    def update_vessels() -> None:
-        """Background thread that refreshes vessel list every 10 minutes."""
-        if not token:
-            print("BW_ACCESS_TOKEN must be set")
-            return
-        while True:
-            try:
-                vessels = fetch_vessels(token, polygon_wkt)
-            except requests.HTTPError as exc:
-                if exc.response is not None and exc.response.status_code == 401:
-                    print("Access token expired or invalid; update BW_ACCESS_TOKEN")
-                else:
-                    print(f"Error fetching vessels: {exc}")
-                time.sleep(600)
-                continue
+@app.get("/health")
+def health():
+    return jsonify({"status": "ok", "time": datetime.now(timezone.utc).isoformat()})
 
-            for vessel in vessels:
-                mmsi = str(vessel.get("mmsi"))
-                if mmsi not in seen:
-                    name = vessel.get("name", "Unknown")
-                    print(f"New vessel: {mmsi}: {name}")
-                    seen.add(mmsi)
+@app.get("/ships")
+def get_ships():
+    try:
+        geom = _load_default_geometry()
+        area_km2 = _validate_area(geom)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-            current_vessels.clear()
-            current_vessels.extend(vessels)
-            time.sleep(600)
+    now = datetime.now(timezone.utc)
+    msgtimefrom = now - timedelta(days=14)  # API supports last 14 days
+    try:
+        mmsi_list = bw_client.find_mmsi_in_area(
+            polygon_geometry=geom,
+            msgtimefrom=msgtimefrom,
+            msgtimeto=now,
+        )
+        features = bw_client.fetch_latest_combined(mmsi_list)
+    except Exception as e:
+        logger.exception("BarentsWatch error")
+        return jsonify({"error": f"Upstream error: {e}"}), 502
 
-    threading.Thread(target=update_vessels, daemon=True).start()
+    return jsonify({"count": len(features), "features": features, "area_km2": round(area_km2, 3)})
 
-    @app.route("/")
-    def index() -> str:
-        return render_template("index.html", vessels=current_vessels)
+@app.post("/ships")
+def post_ships():
+    try:
+        payload = request.get_json(force=True, silent=False)
+        if not payload:
+            return jsonify({"error": "Expected JSON body"}), 400
+        # Either full GeoJSON feature/collection or direct 'geometry'
+        geom = payload.get("geometry", payload)
+        geom = ensure_valid_polygon_geometry(geom)
+        area_km2 = _validate_area(geom)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-    return app
+    now = datetime.now(timezone.utc)
+    msgtimefrom = now - timedelta(days=14)
 
+    try:
+        mmsi_list = bw_client.find_mmsi_in_area(
+            polygon_geometry=geom,
+            msgtimefrom=msgtimefrom,
+            msgtimeto=now,
+        )
+        features = bw_client.fetch_latest_combined(mmsi_list)
+    except Exception as e:
+        logger.exception("BarentsWatch error")
+        return jsonify({"error": f"Upstream error: {e}"}), 502
 
-app = create_app()
-
+    return jsonify({"count": len(features), "features": features, "area_km2": round(area_km2, 3)}})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
-
+    # For local dev only. In Heroku, gunicorn (Procfile) will run the app.
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
