@@ -38,7 +38,9 @@ heroku open
 Ikke sjekk inn `.env`/hemmeligheter i git. I Heroku settes hemmeligheter med `heroku config:set`. Client Credentials anbefales over statiske tokens (tokens utløper typisk etter 1 time).
 
 ## Miljøvariabler
-- `BW_CLIENT_ID`, `BW_CLIENT_SECRET` – OAuth2 Client Credentials
+Kopier `.env.example` til `.env` og fyll inn de nødvendige variablene:
+
+- `BW_CLIENT_ID`, `BW_CLIENT_SECRET` – **påkrevd** OAuth2 Client Credentials
 - `BW_ACCESS_TOKEN` – valgfritt; bypasser client credentials (kortlivet)
-- `GEOJSON_PATH` – sti til standard GeoJSON
-- `MAX_AREA_KM2` – maks areal i km² (default 500)
+- `GEOJSON_PATH` – valgfritt; sti til standard GeoJSON (default `map.geojson`)
+- `MAX_AREA_KM2` – valgfritt; maks areal i km² (default 500)
