@@ -105,8 +105,15 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
 
     new_ships: list[Dict[str, Any]] = []
     for ship in features:
+        mmsi_raw = ship.get("mmsi")
+        try:
+            mmsi = int(mmsi_raw)
+        except (TypeError, ValueError):
+            continue
+        if mmsi not in _known_mmsi:
         mmsi = ship.get("mmsi")
         if mmsi and mmsi not in _known_mmsi:
+
             _known_mmsi.add(mmsi)
             if _engine and _seen_table is not None:
                 try:

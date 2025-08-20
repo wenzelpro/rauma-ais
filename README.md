@@ -45,6 +45,25 @@ Kopier `.env.example` til `.env` og fyll inn de nødvendige variablene:
 - `GEOJSON_PATH` – valgfritt; sti til standard GeoJSON (default `map.geojson`)
 - `MAX_AREA_KM2` – valgfritt; maks areal i km² (default 500)
 - `SLACK_WEBHOOK_URL` – valgfritt; Slack Incoming Webhook for varsling ved nye skip
+- `DATABASE_URL` – valgfritt; URL til Postgres/SQLite for lagring av sett av kjente MMSI
+
+### Database for vedvarende "sett"-liste
+For at appen skal huske hvilke skip som allerede er varslet mellom kjøringer (f.eks. ved bruk av Heroku Scheduler) må
+`DATABASE_URL` peke til en vedvarende database.
+
+#### Heroku Postgres
+```bash
+heroku addons:create heroku-postgresql:mini
+# DATABASE_URL settes automatisk av Heroku
+```
+
+#### Lokal SQLite (kun utvikling)
+```bash
+export DATABASE_URL=sqlite:///seen.db
+```
+
+Uten en database vil alle skip varsles på nytt hver gang polleren kjører.
+=======
 - `DATABASE_URL` – valgfritt; URL til Postgres/Redis for lagring av sett av kjente MMSI
 
 ### Periodisk polling
