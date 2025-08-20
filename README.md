@@ -22,11 +22,10 @@ pip install -r requirements.txt
 
 ## Usage
 
-Set BarentsWatch credentials in the environment:
+Set the BarentsWatch access token in the environment:
 
 ```bash
-export BW_CLIENT_ID="<client id>"
-export BW_CLIENT_SECRET="<client secret>"
+export BW_ACCESS_TOKEN="<access token>"
 ```
 
 Run the application locally:
@@ -47,10 +46,10 @@ Then open <http://localhost:5000> to view the vessel list.
    heroku create
    ```
 
-2. Set BarentsWatch credentials:
+2. Set the BarentsWatch access token:
 
    ```bash
-   heroku config:set BW_CLIENT_ID="<client id>" BW_CLIENT_SECRET="<client secret>"
+   heroku config:set BW_ACCESS_TOKEN="<access token>"
    ```
 
 3. Push the code to Heroku:
