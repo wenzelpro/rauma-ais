@@ -4,7 +4,7 @@ import os
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 from flask import Flask, jsonify, request, render_template
 from dotenv import load_dotenv
@@ -78,7 +78,9 @@ def get_ships():
         return jsonify({"error": str(e)}), 400
 
     now = datetime.now(timezone.utc)
-    msgtimefrom = now - timedelta(days=14)  # API supports last 14 days
+    # Siste 1 time
+    msgtimefrom = now - timedelta(hours=1)
+
     try:
         mmsi_list = bw_client.find_mmsi_in_area(
             polygon_geometry=geom,
@@ -106,7 +108,8 @@ def post_ships():
         return jsonify({"error": str(e)}), 400
 
     now = datetime.now(timezone.utc)
-    msgtimefrom = now - timedelta(days=14)
+    # Siste 1 time
+    msgtimefrom = now - timedelta(hours=1)
 
     try:
         mmsi_list = bw_client.find_mmsi_in_area(
