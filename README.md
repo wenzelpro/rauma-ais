@@ -63,6 +63,8 @@ export DATABASE_URL=sqlite:///seen.db
 ```
 
 Uten en database vil alle skip varsles på nytt hver gang polleren kjører.
+=======
+- `DATABASE_URL` – valgfritt; URL til Postgres/Redis for lagring av sett av kjente MMSI
 
 ### Periodisk polling
 For å få varsler uten å gjøre HTTP-kall selv kan du sette opp [Heroku Scheduler](https://elements.heroku.com/addons/scheduler) til å kjøre
