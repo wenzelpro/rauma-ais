@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Vessel Traffic</title>
+  </head>
+  <body>
+    <h1>Current Vessels</h1>
+    {% if vessels %}
+    <table border="1" cellspacing="0" cellpadding="4">
+      <thead>
+        <tr>
+          <th>MMSI</th>
+          <th>Name</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for vessel in vessels %}
+        <tr>
+          <td>{{ vessel.mmsi }}</td>
+          <td>{{ vessel.name or 'Unknown' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No vessels detected.</p>
+    {% endif %}
+  </body>
+</html>
+
