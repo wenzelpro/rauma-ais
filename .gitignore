@@ -1,4 +1,14 @@
+# Python
 __pycache__/
-.pytest_cache/
-*.pyc
+*.py[cod]
+.venv/
 .env
+
+# Node / Vite
+node_modules/
+dist/
+rauma-ais-frontend/node_modules/
+rauma-ais-frontend/dist/
+
+# Misc
+.DS_Store

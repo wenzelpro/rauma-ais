@@ -124,6 +124,56 @@ def post_ships():
 
     return jsonify({"count": len(features), "features": features, "area_km2": round(area_km2, 3)})
 
+# ---------------------------------------------------------------------------
+# Slack notifications
+# ---------------------------------------------------------------------------
+
+# Simple in-process rate limiting
+last_notify_epoch = 0
+
+
+@app.post("/notify")
+def notify_slack():
+    import time
+    import requests
+
+    webhook = os.getenv("SLACK_WEBHOOK_URL")
+    if not webhook:
+        return jsonify({"error": "Slack not configured"}), 501
+
+    global last_notify_epoch
+    now = time.time()
+    if now - last_notify_epoch < 60:
+        return jsonify({"error": "Rate limited"}), 429
+
+    payload = request.get_json(force=True) or {}
+    ships = payload.get("ships", [])
+    if not ships:
+        return jsonify({"ok": True, "notified": 0})
+
+    lines = []
+    for s in ships:
+        name = s.get("name") or "Ukjent"
+        lines.append(
+            f"• {name} (MMSI {s.get('mmsi')}) – {s.get('latitude')},{s.get('longitude')} – {s.get('msgtime')}"
+        )
+
+    text = f"*Nye skip innenfor området ({len(ships)})*\n" + "\n".join(lines)
+    resp = requests.post(webhook, json={"text": text}, timeout=10)
+    if resp.status_code >= 300:
+        return jsonify({"error": f"Slack error {resp.status_code}", "body": resp.text}), 502
+
+    last_notify_epoch = now
+    return jsonify({"ok": True, "notified": len(ships)})
+
+
+@app.after_request
+def add_cors_headers(resp):
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    resp.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
+    return resp
+
 if __name__ == "__main__":
     # For local dev only. In Heroku, gunicorn (Procfile) will run the app.
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)

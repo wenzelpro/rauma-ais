@@ -44,3 +44,16 @@ Kopier `.env.example` til `.env` og fyll inn de nødvendige variablene:
 - `BW_ACCESS_TOKEN` – valgfritt; bypasser client credentials (kortlivet)
 - `GEOJSON_PATH` – valgfritt; sti til standard GeoJSON (default `map.geojson`)
 - `MAX_AREA_KM2` – valgfritt; maks areal i km² (default 500)
+
+## Frontend
+En enkel React/Vite-app ligger i `rauma-ais-frontend` og viser skipene i en tabell.
+
+Kjør lokalt:
+
+```bash
+cd rauma-ais-frontend
+npm install
+npm run dev
+```
+
+Miljøvariabler kan settes i `rauma-ais-frontend/.env` (se `.env.example`).
