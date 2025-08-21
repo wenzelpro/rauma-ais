@@ -120,6 +120,8 @@ class BarentsWatchClient:
                     "longitude": item.get("longitude"),
                     "msgtime": item.get("msgtime"),
                     "shipType": item.get("shipType"),
+                    "destination": item.get("destination"),
+                    "lengthoverall": item.get("lengthoverall") or item.get("lengthOverall"),
                 }
                 results.append(simplified)
         return results
