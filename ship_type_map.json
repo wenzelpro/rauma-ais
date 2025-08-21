@@ -1,0 +1,98 @@
+{
+  "0": "Ikke tilgjengelig / Uspesifisert",
+  "1-19": "Reservert",
+  "20-29": {
+    "kategori": "Luftputefartøy (WIG)",
+    "beskrivelser": {
+      "20": "Luftputefartøy, alle typer",
+      "21": "Luftputefartøy, farlig last kategori A",
+      "22": "Luftputefartøy, farlig last kategori B",
+      "23": "Luftputefartøy, farlig last kategori C",
+      "24": "Luftputefartøy, farlig last kategori D",
+      "25-29": "Luftputefartøy, reservert"
+    }
+  },
+  "30-37": {
+    "kategori": "Spesialfartøy",
+    "beskrivelser": {
+      "30": "Fiskefartøy",
+      "31": "Taubåt",
+      "32": "Taubåt, slep > 200m eller bredde > 25m",
+      "33": "Mudring eller undervannsoperasjoner",
+      "34": "Dykkeroperasjoner",
+      "35": "Militærfartøy",
+      "36": "Seilfartøy",
+      "37": "Fritidsfartøy"
+    }
+  },
+  "40-49": {
+    "kategori": "Hurtiggående fartøy (HSC)",
+    "beskrivelser": {
+      "40": "Hurtiggående fartøy, alle typer",
+      "41": "Hurtiggående fartøy, farlig last kategori A",
+      "42": "Hurtiggående fartøy, farlig last kategori B",
+      "43": "Hurtiggående fartøy, farlig last kategori C",
+      "44": "Hurtiggående fartøy, farlig last kategori D",
+      "45-49": "Hurtiggående fartøy, reservert"
+    }
+  },
+  "50-59": {
+    "kategori": "Servicefartøy",
+    "beskrivelser": {
+      "50": "Losbåt",
+      "51": "Redningsfartøy (SAR)",
+      "52": "Taubåt",
+      "53": "Havnefartøy",
+      "54": "Forurensningsbekjempelse",
+      "55": "Politifartøy / Tilsyn",
+      "56": "Lokalt fartøy (spare)",
+      "57": "Lokalt fartøy (spare)",
+      "58": "Ambulansefartøy / Medisinsk transport",
+      "59": "Ikke-stridende fartøy iht. RR Resolusjon 18"
+    }
+  },
+  "60-69": {
+    "kategori": "Passasjerskip",
+    "beskrivelser": {
+      "60": "Passasjerskip, alle typer",
+      "61": "Passasjerskip, farlig last kategori A",
+      "62": "Passasjerskip, farlig last kategori B",
+      "63": "Passasjerskip, farlig last kategori C",
+      "64": "Passasjerskip, farlig last kategori D",
+      "65-69": "Passasjerskip, reservert"
+    }
+  },
+  "70-79": {
+    "kategori": "Lasteskip",
+    "beskrivelser": {
+      "70": "Lasteskip, alle typer",
+      "71": "Lasteskip, farlig last kategori A",
+      "72": "Lasteskip, farlig last kategori B",
+      "73": "Lasteskip, farlig last kategori C",
+      "74": "Lasteskip, farlig last kategori D",
+      "75-79": "Lasteskip, reservert"
+    }
+  },
+  "80-89": {
+    "kategori": "Tankskip",
+    "beskrivelser": {
+      "80": "Tankskip, alle typer",
+      "81": "Tankskip, farlig last kategori A",
+      "82": "Tankskip, farlig last kategori B",
+      "83": "Tankskip, farlig last kategori C",
+      "84": "Tankskip, farlig last kategori D",
+      "85-89": "Tankskip, reservert"
+    }
+  },
+  "90-99": {
+    "kategori": "Andre fartøy",
+    "beskrivelser": {
+      "90": "Andre fartøy, alle typer",
+      "91": "Andre fartøy, farlig last kategori A",
+      "92": "Andre fartøy, farlig last kategori B",
+      "93": "Andre fartøy, farlig last kategori C",
+      "94": "Andre fartøy, farlig last kategori D",
+      "95-99": "Andre fartøy, reservert"
+    }
+  }
+}

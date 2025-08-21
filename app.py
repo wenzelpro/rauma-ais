@@ -69,6 +69,48 @@ def _load_flag_map() -> dict[str, str]:
 _mid_to_flag = _load_flag_map()
 
 
+def _load_ship_type_map() -> dict[int, str]:
+    """Load mapping of ship type numbers to human readable strings."""
+    path = os.path.join(os.path.dirname(__file__), "ship_type_map.json")
+    mapping: dict[int, str] = {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        logger.warning("Ship type mapping file not found: %s", path)
+        return mapping
+    except json.JSONDecodeError as exc:
+        logger.warning("Invalid ship type mapping file %s: %s", path, exc)
+        return mapping
+
+    def _expand_range(key: str) -> range:
+        if "-" in key:
+            start, end = key.split("-", 1)
+            return range(int(start), int(end) + 1)
+        return range(int(key), int(key) + 1)
+
+    for key, val in data.items():
+        if isinstance(val, str):
+            for num in _expand_range(key):
+                mapping[num] = val
+        elif isinstance(val, dict):
+            descriptions = val.get("beskrivelser", {})
+            for d_key, d_val in descriptions.items():
+                for num in _expand_range(d_key):
+                    mapping[num] = d_val
+
+    return mapping
+
+
+_ship_type_map = _load_ship_type_map()
+
+
+def _ship_type_description(code: Any) -> str:
+    try:
+        return _ship_type_map.get(int(code), "Unknown")
+    except (TypeError, ValueError):
+        return "Unknown"
+
 def _country_to_emoji(name: str) -> str:
     if not pycountry:
         return ""
@@ -176,13 +218,23 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
         name = ship.get("name") or "Unknown"
         destination = ship.get("destination") or "Unknown"
         length = ship.get("length") or ship.get("lengthoverall") or "Unknown"
+
+        ship_type_code = ship.get("shipType") or ship.get("ship_type")
+        ship_type_desc = _ship_type_description(ship_type_code)
+
         ship_type = ship.get("shipType") or ship.get("ship_type") or "Unknown"
+
         mmsi_raw = ship.get("mmsi")
         try:
             mmsi_val = int(mmsi_raw)
         except (TypeError, ValueError):
             mmsi_val = 0
         flag = _flag_from_mmsi(mmsi_val)
+
+        text = (
+            f"{ship_type_desc}: {name} seiler mot {destination}. "
+            f"Lengde: {length}. Flagg: {flag}."
+
         lat = ship.get("latitude")
         lon = ship.get("longitude")
         text = (
