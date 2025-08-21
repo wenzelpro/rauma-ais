@@ -11,7 +11,15 @@ try:
     import pycountry
 except ImportError:  # pragma: no cover - optional dependency
     pycountry = None
-from sqlalchemy import create_engine, MetaData, Table, Column, Integer, select
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    Integer,
+    DateTime,
+    select,
+)
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.pool import StaticPool
@@ -113,7 +121,10 @@ def _init_db() -> None:
     _engine = create_engine(DATABASE_URL, **kwargs)
     metadata = MetaData()
     _seen_table = Table(
-        "seen_mmsi", metadata, Column("mmsi", Integer, primary_key=True)
+        "seen_mmsi",
+        metadata,
+        Column("mmsi", Integer, primary_key=True),
+        Column("last_seen", DateTime(timezone=True), nullable=False),
     )
     metadata.create_all(_engine)
     try:
@@ -152,27 +163,37 @@ def _validate_area(geom: Dict[str, Any]) -> float:
 
 def notify_new_ships(features: list[Dict[str, Any]]) -> None:
     """Send Slack notifications for ships not seen before."""
-    if not SLACK_WEBHOOK_URL:
-        return
 
     new_ships: list[Dict[str, Any]] = []
+    now = datetime.now(timezone.utc)
     for ship in features:
         mmsi_raw = ship.get("mmsi")
         try:
             mmsi = int(mmsi_raw)
         except (TypeError, ValueError):
             continue
+        if _engine and _seen_table is not None:
+            try:
+                with _engine.begin() as conn:
+                    if mmsi in _known_mmsi:
+                        conn.execute(
+                            _seen_table.update()
+                            .where(_seen_table.c.mmsi == mmsi)
+                            .values(last_seen=now)
+                        )
+                    else:
+                        conn.execute(
+                            _seen_table.insert().values(mmsi=mmsi, last_seen=now)
+                        )
+            except SQLAlchemyError as exc:
+                logger.warning("Failed to store MMSI %s: %s", mmsi, exc)
         if mmsi not in _known_mmsi:
             _known_mmsi.add(mmsi)
-            if _engine and _seen_table is not None:
-                try:
-                    with _engine.begin() as conn:
-                        conn.execute(_seen_table.insert().values(mmsi=mmsi))
-                except SQLAlchemyError as exc:
-                    logger.warning("Failed to store MMSI %s: %s", mmsi, exc)
             new_ships.append(ship)
 
     for ship in new_ships:
+        if not SLACK_WEBHOOK_URL:
+            continue
         name = ship.get("name") or "Unknown"
         destination = ship.get("destination") or "Unknown"
         length = ship.get("length") or ship.get("lengthoverall") or "Unknown"
