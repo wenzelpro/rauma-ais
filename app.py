@@ -252,10 +252,6 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
             mmsi_val = 0
         flag = _flag_from_mmsi(mmsi_val)
 
-        text = (
-            f"{ship_type_desc}: {name} seiler mot {destination}. "
-            f"Lengde: {length}. Flagg: {flag}."
-
         lat = ship.get("latitude")
         lon = ship.get("longitude")
         text = (

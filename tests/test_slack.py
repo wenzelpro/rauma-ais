@@ -25,9 +25,8 @@ def test_notify_new_ship(monkeypatch):
     app.notify_new_ships([ship])
 
     assert len(messages) == 1
-    msg = messages[0]    assert msg.startswith(
-        "Unknown: Test seiler mot Unknown. Lengde: Unknown. Flagg:"
-    )
+    msg = messages[0]
+    assert msg.startswith("New ship in area:")
 
     assert "Name: Test" in msg
     assert "Destination: Unknown" in msg
