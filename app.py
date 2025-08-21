@@ -34,6 +34,13 @@ DEFAULT_GEOJSON_PATH = os.getenv("GEOJSON_PATH", "map.geojson")
 MAX_AREA_KM2 = float(os.getenv("MAX_AREA_KM2", "500"))
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 DATABASE_URL = os.getenv("DATABASE_URL")
+# Heroku provides URLs starting with ``postgres://`` which is no longer
+# recognised by SQLAlchemy. Normalise it to ``postgresql+psycopg2://`` so the
+# correct dialect/driver is loaded.
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgres://", "postgresql+psycopg2://", 1
+    )
 
 # Track ships we've already notified about
 _known_mmsi: set[int] = set()
