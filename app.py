@@ -111,7 +111,6 @@ def _ship_type_description(code: Any) -> str:
     except (TypeError, ValueError):
         return "Unknown"
 
-
 def _country_to_emoji(name: str) -> str:
     if not pycountry:
         return ""
@@ -219,17 +218,34 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
         name = ship.get("name") or "Unknown"
         destination = ship.get("destination") or "Unknown"
         length = ship.get("length") or ship.get("lengthoverall") or "Unknown"
+
         ship_type_code = ship.get("shipType") or ship.get("ship_type")
         ship_type_desc = _ship_type_description(ship_type_code)
+
+        ship_type = ship.get("shipType") or ship.get("ship_type") or "Unknown"
+
         mmsi_raw = ship.get("mmsi")
         try:
             mmsi_val = int(mmsi_raw)
         except (TypeError, ValueError):
             mmsi_val = 0
         flag = _flag_from_mmsi(mmsi_val)
+
         text = (
             f"{ship_type_desc}: {name} seiler mot {destination}. "
             f"Lengde: {length}. Flagg: {flag}."
+
+        lat = ship.get("latitude")
+        lon = ship.get("longitude")
+        text = (
+            "New ship in area:\n"
+            f"Name: {name}\n"
+            f"MMSI: {mmsi_raw}\n"
+            f"Destination: {destination}\n"
+            f"Length: {length}\n"
+            f"Type: {ship_type}\n"
+            f"Flag: {flag}\n"
+            f"Position: {lat}, {lon}"
         )
         try:
             requests.post(SLACK_WEBHOOK_URL, json={"text": text}, timeout=10)
