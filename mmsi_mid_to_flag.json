@@ -1,0 +1,13 @@
+{
+  "spec_version": 1,
+  "generated_at_utc": "2025-08-20T00:00:00Z",
+  "notes": [
+    "Map MMSI to flag state by taking the first three digits (MID) and looking up in mid_to_flag.",
+    "This starter list covers Europe, North America/Caribbean, and most common global registries. Extend as needed."
+  ],
+  "mid_to_flag": {
+    "123": "Norway",
+    "257": "Norway",
+    "999": "Finland"
+  }
+}
