@@ -6,3 +6,4 @@ shapely>=2.0.4
 pyproj>=3.6.1
 SQLAlchemy>=2.0.0
 psycopg2-binary>=2.9.9
+pycountry>=23.12.11

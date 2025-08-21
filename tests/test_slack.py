@@ -17,13 +17,16 @@ def test_notify_new_ship(monkeypatch):
             conn.execute(app._seen_table.delete())
 
 
-    ship = {"mmsi": "123", "name": "Test", "latitude": 1, "longitude": 2}
     ship = {"mmsi": 123, "name": "Test", "latitude": 1, "longitude": 2}
     app.notify_new_ships([ship])
     app.notify_new_ships([ship])
 
     assert len(messages) == 1
-    assert "Test" in messages[0]
+    msg = messages[0]
+    assert msg.startswith(
+        "Unknown: Test seiler mot Unknown. Lengde: Unknown. Flagg:"
+    )
+    assert "Norway" in msg
 
 def test_persistence_across_runs(monkeypatch, tmp_path):
     messages = []

@@ -7,6 +7,10 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 
 import requests
+try:
+    import pycountry
+except ImportError:  # pragma: no cover - optional dependency
+    pycountry = None
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -46,6 +50,90 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 _known_mmsi: set[int] = set()
 _engine: Engine | None = None
 _seen_table: Table | None = None
+
+
+def _load_flag_map() -> dict[str, str]:
+    """Load MMSI MID to flag name mapping."""
+    path = os.path.join(os.path.dirname(__file__), "mmsi_mid_to_flag.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data.get("mid_to_flag", {})
+    except FileNotFoundError:
+        logger.warning("Flag mapping file not found: %s", path)
+    except json.JSONDecodeError as exc:
+        logger.warning("Invalid flag mapping file %s: %s", path, exc)
+    return {}
+
+
+_mid_to_flag = _load_flag_map()
+
+
+def _load_ship_type_map() -> dict[int, str]:
+    """Load mapping of ship type numbers to human readable strings."""
+    path = os.path.join(os.path.dirname(__file__), "ship_type_map.json")
+    mapping: dict[int, str] = {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        logger.warning("Ship type mapping file not found: %s", path)
+        return mapping
+    except json.JSONDecodeError as exc:
+        logger.warning("Invalid ship type mapping file %s: %s", path, exc)
+        return mapping
+
+    def _expand_range(key: str) -> range:
+        if "-" in key:
+            start, end = key.split("-", 1)
+            return range(int(start), int(end) + 1)
+        return range(int(key), int(key) + 1)
+
+    for key, val in data.items():
+        if isinstance(val, str):
+            for num in _expand_range(key):
+                mapping[num] = val
+        elif isinstance(val, dict):
+            descriptions = val.get("beskrivelser", {})
+            for d_key, d_val in descriptions.items():
+                for num in _expand_range(d_key):
+                    mapping[num] = d_val
+
+    return mapping
+
+
+_ship_type_map = _load_ship_type_map()
+
+
+def _ship_type_description(code: Any) -> str:
+    try:
+        return _ship_type_map.get(int(code), "Unknown")
+    except (TypeError, ValueError):
+        return "Unknown"
+
+
+def _country_to_emoji(name: str) -> str:
+    if not pycountry:
+        return ""
+    try:
+        # Handle names like "Portugal - Azores"
+        clean_name = name.split(" - ")[0]
+        country = pycountry.countries.search_fuzzy(clean_name)[0]
+    except Exception:
+        return ""
+    code = country.alpha_2.upper()
+    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code)
+
+
+def _flag_from_mmsi(mmsi: int) -> str:
+    mid = str(mmsi)[:3]
+    name = _mid_to_flag.get(mid)
+    if not name:
+        return "Unknown"
+    emoji = _country_to_emoji(name)
+    if emoji:
+        return f"{emoji} {name}"
+    return name
 
 # Initialize BarentsWatch client (token management inside)
 bw_client = BarentsWatchClient(
@@ -129,9 +217,20 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
 
     for ship in new_ships:
         name = ship.get("name") or "Unknown"
-        lat = ship.get("latitude")
-        lon = ship.get("longitude")
-        text = f"New ship in area: {name} (MMSI {ship.get('mmsi')}) at {lat}, {lon}"
+        destination = ship.get("destination") or "Unknown"
+        length = ship.get("length") or ship.get("lengthoverall") or "Unknown"
+        ship_type_code = ship.get("shipType") or ship.get("ship_type")
+        ship_type_desc = _ship_type_description(ship_type_code)
+        mmsi_raw = ship.get("mmsi")
+        try:
+            mmsi_val = int(mmsi_raw)
+        except (TypeError, ValueError):
+            mmsi_val = 0
+        flag = _flag_from_mmsi(mmsi_val)
+        text = (
+            f"{ship_type_desc}: {name} seiler mot {destination}. "
+            f"Lengde: {length}. Flagg: {flag}."
+        )
         try:
             requests.post(SLACK_WEBHOOK_URL, json={"text": text}, timeout=10)
         except Exception as exc:
