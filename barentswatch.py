@@ -113,6 +113,11 @@ class BarentsWatchClient:
             data = resp.json()
             # Normalize to a simple list of features
             for item in data if isinstance(data, list) else []:
+                length = (
+                    item.get("length")
+                    or item.get("lengthoverall")
+                    or item.get("lengthOverall")
+                )
                 simplified = {
                     "mmsi": item.get("mmsi"),
                     "name": item.get("name"),
@@ -121,7 +126,7 @@ class BarentsWatchClient:
                     "msgtime": item.get("msgtime"),
                     "shipType": item.get("shipType"),
                     "destination": item.get("destination"),
-                    "lengthoverall": item.get("lengthoverall") or item.get("lengthOverall"),
+                    "length": length,
                 }
                 results.append(simplified)
         return results
