@@ -25,7 +25,7 @@ class FakeSession:
         return FakeResponse()
 
 
-def test_fetch_latest_combined_includes_destination_and_lengthoverall():
+def test_fetch_latest_combined_includes_destination_and_length():
     client = BarentsWatchClient(
         client_id=None,
         client_secret=None,
@@ -34,4 +34,4 @@ def test_fetch_latest_combined_includes_destination_and_lengthoverall():
     )
     features = client.fetch_latest_combined([123456789])
     assert features[0]["destination"] == "Somewhere"
-    assert features[0]["lengthoverall"] == 150
+    assert features[0]["length"] == 150
