@@ -208,12 +208,14 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
 
     new_ships: list[Dict[str, Any]] = []
     now = datetime.now(timezone.utc)
+    current_mmsi: set[int] = set()
     for ship in features:
         mmsi_raw = ship.get("mmsi")
         try:
             mmsi = int(mmsi_raw)
         except (TypeError, ValueError):
             continue
+        current_mmsi.add(mmsi)
         if _engine and _seen_table is not None:
             try:
                 with _engine.begin() as conn:
@@ -232,6 +234,21 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
         if mmsi not in _known_mmsi:
             _known_mmsi.add(mmsi)
             new_ships.append(ship)
+
+    # Remove ships that are no longer present
+    departed = _known_mmsi - current_mmsi
+    if departed:
+        _known_mmsi.difference_update(departed)
+        if _engine and _seen_table is not None:
+            try:
+                with _engine.begin() as conn:
+                    conn.execute(
+                        _seen_table.delete().where(
+                            _seen_table.c.mmsi.in_(departed)
+                        )
+                    )
+            except SQLAlchemyError as exc:
+                logger.warning("Failed to remove MMSIs %s: %s", departed, exc)
 
     for ship in new_ships:
         if not SLACK_WEBHOOK_URL:
