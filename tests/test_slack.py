@@ -126,3 +126,39 @@ def test_last_seen_and_cleanup(monkeypatch, tmp_path):
         rows = conn.execute(select(app._seen_table.c.mmsi)).fetchall()
         mmsis = {r[0] for r in rows}
     assert 555 in mmsis and 999 not in mmsis
+
+
+def test_remove_ship_when_leaving(monkeypatch, tmp_path):
+    messages: list[str] = []
+
+    def fake_post(url, json, timeout):
+        messages.append(json["text"])
+        class Resp:
+            status_code = 200
+        return Resp()
+
+    db_url = f"sqlite:///{tmp_path}/seen.db"
+    monkeypatch.setattr(app, "DATABASE_URL", db_url)
+    monkeypatch.setattr(app, "SLACK_WEBHOOK_URL", "http://example.com")
+    monkeypatch.setattr(app.requests, "post", fake_post)
+
+    # Reset app DB state
+    app._known_mmsi.clear()
+    app._engine = None
+    app._seen_table = None
+    app._init_db()
+
+    ship = {"mmsi": 321, "name": "Leave", "latitude": 1, "longitude": 2}
+
+    app.notify_new_ships([ship])
+    assert len(messages) == 1
+
+    app.notify_new_ships([])
+    assert 321 not in app._known_mmsi
+    if app._engine and app._seen_table is not None:
+        with app._engine.begin() as conn:
+            rows = conn.execute(select(app._seen_table.c.mmsi)).fetchall()
+            assert 321 not in {r[0] for r in rows}
+
+    app.notify_new_ships([ship])
+    assert len(messages) == 2
