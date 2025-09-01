@@ -284,6 +284,21 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
         except Exception as exc:
             logger.warning("Failed to notify Slack: %s", exc)
 
+
+def clear_seen_mmsi() -> None:
+    """Clear all stored MMSI entries both in memory and in the database."""
+    _known_mmsi.clear()
+    # Ensure database is initialised so we can clear the table
+    if not _engine or _seen_table is None:
+        _init_db()
+    if not _engine or _seen_table is None:
+        return
+    try:
+        with _engine.begin() as conn:
+            conn.execute(_seen_table.delete())
+    except SQLAlchemyError as exc:
+        logger.warning("Failed to clear seen_mmsi table: %s", exc)
+
 @app.get("/")
 def index():
     return render_template("index.html",
@@ -333,6 +348,13 @@ def data():
         for row in rows
     ]
     return jsonify({"rows": result})
+
+
+@app.delete("/data")
+def clear_data():
+    """Clear the ``seen_mmsi`` table and in-memory cache."""
+    clear_seen_mmsi()
+    return jsonify({"status": "cleared"})
 
 @app.get("/ships")
 def get_ships():

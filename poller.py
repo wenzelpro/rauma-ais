@@ -7,6 +7,8 @@ from sqlalchemy.exc import SQLAlchemyError
 import app
 from app import _load_default_geometry, _validate_area, bw_client, notify_new_ships
 
+import argparse
+
 logging.basicConfig(level="INFO")
 logger = logging.getLogger("poller")
 
@@ -24,7 +26,19 @@ def cleanup_seen_mmsi(max_age_hours: int = 24) -> None:
         logger.warning("Cleanup failed: %s", exc)
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="Clear the seen_mmsi database and exit",
+    )
+    args = parser.parse_args(argv)
+    if args.clear:
+        app.clear_seen_mmsi()
+        logger.info("Cleared seen_mmsi database")
+        return
+
     try:
         geom = _load_default_geometry()
         _validate_area(geom)
