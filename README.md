@@ -6,6 +6,8 @@ Et lite Flask-API som returnerer skip i et område definert av `map.geojson`, ve
 - `GET /health` – enkel helsesjekk
 - `GET /ships` – leser geojson fra `map.geojson` (kan overstyres med `GEOJSON_PATH`)
 - `POST /ships` – send en GeoJSON `geometry` (Polygon/MultiPolygon) i request-body
+- `GET /data` – viser innholdet i tabellen `seen_mmsi`
+- `DELETE /data` – tømmer tabellen `seen_mmsi` og tilhørende cache
 
 ## Kjør lokalt
 ```bash
@@ -66,3 +68,4 @@ Uten en database vil alle skip varsles på nytt hver gang polleren kjører.
 ### Periodisk polling
 For å få varsler uten å gjøre HTTP-kall selv kan du sette opp [Heroku Scheduler](https://elements.heroku.com/addons/scheduler) til å kjøre
 `python poller.py` hvert par minutter. Scheduler-dyno deler `DATABASE_URL` med web-dyno, så nye skip varsles kun én gang.
+For å tømme listen over kjente skip kan du kjøre `python poller.py --clear`.
