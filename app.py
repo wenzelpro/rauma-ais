@@ -296,6 +296,27 @@ def index():
 def health():
     return jsonify({"status": "ok", "time": datetime.now(timezone.utc).isoformat()})
 
+
+@app.get("/data")
+def data():
+    """Return rows from the seen_mmsi table to verify DB access."""
+    if not _engine or _seen_table is None:
+        return jsonify({"error": "database not configured"}), 500
+    try:
+        with _engine.connect() as conn:
+            rows = conn.execute(select(_seen_table)).fetchall()
+        result = [
+            {
+                "mmsi": row.mmsi,
+                "last_seen": row.last_seen.isoformat() if row.last_seen else None,
+            }
+            for row in rows
+        ]
+        return jsonify({"rows": result})
+    except SQLAlchemyError as exc:
+        logger.warning("Database error: %s", exc)
+        return jsonify({"error": "database query failed"}), 500
+
 @app.get("/ships")
 def get_ships():
     try:
