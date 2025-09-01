@@ -260,8 +260,6 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
         ship_type_code = ship.get("shipType") or ship.get("ship_type")
         ship_type_desc = _ship_type_description(ship_type_code)
 
-        ship_type = ship.get("shipType") or ship.get("ship_type") or "Unknown"
-
         mmsi_raw = ship.get("mmsi")
         try:
             mmsi_val = int(mmsi_raw)
@@ -277,7 +275,7 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
             f"MMSI: {mmsi_raw}\n"
             f"Destination: {destination}\n"
             f"Length: {length}\n"
-            f"Type: {ship_type}\n"
+            f"Type: {ship_type_desc}\n"
             f"Flag: {flag}\n"
             f"Position: {lat}, {lon}"
         )
@@ -337,6 +335,8 @@ def get_ships():
         )
         features = bw_client.fetch_latest_combined(mmsi_list)
         notify_new_ships(features)
+        for ship in features:
+            ship["shipType"] = _ship_type_description(ship.get("shipType"))
     except Exception as e:
         logger.exception("BarentsWatch error")
         return jsonify({"error": f"Upstream error: {e}"}), 502
@@ -368,6 +368,8 @@ def post_ships():
         )
         features = bw_client.fetch_latest_combined(mmsi_list)
         notify_new_ships(features)
+        for ship in features:
+            ship["shipType"] = _ship_type_description(ship.get("shipType"))
     except Exception as e:
         logger.exception("BarentsWatch error")
         return jsonify({"error": f"Upstream error: {e}"}), 502
