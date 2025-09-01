@@ -297,26 +297,42 @@ def health():
 
 @app.get("/data")
 def data():
-    """Return rows from the seen_mmsi table to verify DB access."""
+    """Return rows from the ``seen_mmsi`` table to verify DB access."""
+    # Lazily (re)initialize the database so the endpoint works even if the
+    # table has been dropped after startup or the engine wasn't ready yet.
+    if not _engine or _seen_table is None:
+        _init_db()
     if not _engine or _seen_table is None:
         return jsonify({"error": "database not configured"}), 500
+
     try:
         with _engine.connect() as conn:
             rows = conn.execute(select(_seen_table)).fetchall()
-        result = [
-            {
-                "mmsi": row.mmsi,
-                "last_seen": row.last_seen.isoformat() if row.last_seen else None,
-            }
-            for row in rows
-        ]
-        return jsonify({"rows": result})
     except SQLAlchemyError as exc:
-        logger.warning("Database error: %s", exc)
-        response = {"error": "database query failed"}
-        if app.debug:
-            response["detail"] = str(exc)
-        return jsonify(response), 500
+        message = str(exc).lower()
+        # Handle missing table (e.g. after a reset) by recreating it on demand
+        if "no such table" in message or "undefinedtable" in message:
+            logger.warning("seen_mmsi table missing, creating it: %s", exc)
+            _init_db()
+            if not _engine or _seen_table is None:
+                return jsonify({"error": "database not configured"}), 500
+            with _engine.connect() as conn:
+                rows = conn.execute(select(_seen_table)).fetchall()
+        else:
+            logger.warning("Database error: %s", exc)
+            response = {"error": "database query failed"}
+            if app.debug:
+                response["detail"] = str(exc)
+            return jsonify(response), 500
+
+    result = [
+        {
+            "mmsi": row.mmsi,
+            "last_seen": row.last_seen.isoformat() if row.last_seen else None,
+        }
+        for row in rows
+    ]
+    return jsonify({"rows": result})
 
 @app.get("/ships")
 def get_ships():
