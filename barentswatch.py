@@ -118,6 +118,16 @@ class BarentsWatchClient:
                     or item.get("lengthoverall")
                     or item.get("lengthOverall")
                 )
+                # Destination may reside either at the top level or inside a
+                # nested vessel/static data structure depending on the API
+                # endpoint used.  Attempt to extract it from the most common
+                # locations.
+                destination = item.get("destination")
+                if not destination:
+                    vessel = item.get("vesselData") or item.get("vesseldata")
+                    if isinstance(vessel, dict):
+                        destination = vessel.get("destination") or vessel.get("dest")
+
                 simplified = {
                     "mmsi": item.get("mmsi"),
                     "name": item.get("name"),
@@ -125,7 +135,7 @@ class BarentsWatchClient:
                     "longitude": item.get("longitude"),
                     "msgtime": item.get("msgtime"),
                     "shipType": item.get("shipType"),
-                    "destination": item.get("destination"),
+                    "destination": destination,
                     "length": length,
                 }
                 results.append(simplified)

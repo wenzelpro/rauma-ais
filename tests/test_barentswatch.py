@@ -16,7 +16,17 @@ class FakeResponse:
                 "shipType": "Cargo",
                 "destination": "Somewhere",
                 "lengthoverall": 150,
-            }
+            },
+            {
+                "mmsi": 987654321,
+                "name": "Nested Ship",
+                "latitude": 3.0,
+                "longitude": 4.0,
+                "msgtime": "2023-01-02T00:00:00Z",
+                "shipType": "Tanker",
+                "vesselData": {"destination": "Elsewhere"},
+                "length": 200,
+            },
         ]
 
 
@@ -35,3 +45,5 @@ def test_fetch_latest_combined_includes_destination_and_length():
     features = client.fetch_latest_combined([123456789])
     assert features[0]["destination"] == "Somewhere"
     assert features[0]["length"] == 150
+    # Nested vesselData destination handled
+    assert features[1]["destination"] == "Elsewhere"
