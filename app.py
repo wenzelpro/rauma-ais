@@ -313,7 +313,10 @@ def data():
         return jsonify({"rows": result})
     except SQLAlchemyError as exc:
         logger.warning("Database error: %s", exc)
-        return jsonify({"error": "database query failed"}), 500
+        response = {"error": "database query failed"}
+        if app.debug:
+            response["detail"] = str(exc)
+        return jsonify(response), 500
 
 @app.get("/ships")
 def get_ships():
