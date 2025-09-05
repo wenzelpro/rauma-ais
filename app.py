@@ -271,10 +271,10 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
         lon = ship.get("longitude")
         text = (
             "Nytt skip på vei!\n"
-            f"Navn: {name}\n"
-            f"MMSI: {mmsi_raw}\n"
-            f"Type: {ship_type_desc}\n"
-            f"Flagg: {flag}\n"
+            f"{name}\n"
+            f"({mmsi_raw})\n"
+            f"{flag}\n"
+            f"{ship_type_desc}\n"
         )
         try:
             requests.post(SLACK_WEBHOOK_URL, json={"text": text}, timeout=10)
