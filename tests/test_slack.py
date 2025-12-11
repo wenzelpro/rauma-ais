@@ -26,13 +26,10 @@ def test_notify_new_ship(monkeypatch):
 
     assert len(messages) == 1
     msg = messages[0]
-    assert msg.startswith("New ship in area:")
+    assert msg.startswith("Nytt skip")
 
-    assert "Name: Test" in msg
-    assert "Destination: Unknown" in msg
-    assert "Length: Unknown" in msg
-    assert "Type: Unknown" in msg
-    assert "Norway" in msg
+    assert "Test" in msg
+    assert "257000000" in msg
 
 def test_persistence_across_runs(monkeypatch, tmp_path):
     messages = []

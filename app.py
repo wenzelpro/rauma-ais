@@ -58,6 +58,33 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 _known_mmsi: set[int] = set()
 _engine: Engine | None = None
 _seen_table: Table | None = None
+_ignored_ships: list[dict[str, Any]] = []
+
+
+def _load_ignored_ships() -> list[dict[str, Any]]:
+    """Load ships that should be ignored for notifications."""
+
+    path = os.path.join(os.path.dirname(__file__), "ignored_ships.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        logger.info("Ignored ships file not found: %s", path)
+        return []
+    except json.JSONDecodeError as exc:
+        logger.warning("Invalid ignored ships file %s: %s", path, exc)
+        return []
+
+    ships = data if isinstance(data, list) else data.get("ignored_ships", [])
+    cleaned: list[dict[str, Any]] = []
+    for entry in ships:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("name")
+        mmsi = entry.get("mmsi")
+        if name or mmsi:
+            cleaned.append({"name": name, "mmsi": mmsi})
+    return cleaned
 
 
 def _load_flag_map() -> dict[str, str]:
@@ -111,6 +138,7 @@ def _load_ship_type_map() -> dict[int, str]:
 
 
 _ship_type_map = _load_ship_type_map()
+_ignored_ships = _load_ignored_ships()
 
 
 def _ship_type_description(code: Any) -> str:
@@ -118,6 +146,26 @@ def _ship_type_description(code: Any) -> str:
         return _ship_type_map.get(int(code), "Unknown")
     except (TypeError, ValueError):
         return "Unknown"
+
+
+def _is_ignored_ship(ship: Dict[str, Any]) -> bool:
+    name = str(ship.get("name") or "").strip().lower()
+    mmsi_raw = ship.get("mmsi")
+    for ignored in _ignored_ships:
+        ignored_name = str(ignored.get("name") or "").strip().lower()
+        ignored_mmsi = ignored.get("mmsi")
+
+        name_matches = bool(name and ignored_name and name == ignored_name)
+        try:
+            mmsi_matches = ignored_mmsi is not None and int(mmsi_raw) == int(
+                ignored_mmsi
+            )
+        except (TypeError, ValueError):
+            mmsi_matches = False
+
+        if name_matches or mmsi_matches:
+            return True
+    return False
 
 def _country_to_emoji(name: str) -> str:
     if not pycountry:
@@ -233,7 +281,8 @@ def notify_new_ships(features: list[Dict[str, Any]]) -> None:
                 logger.warning("Failed to store MMSI %s: %s", mmsi, exc)
         if mmsi not in _known_mmsi:
             _known_mmsi.add(mmsi)
-            new_ships.append(ship)
+            if not _is_ignored_ship(ship):
+                new_ships.append(ship)
 
     # Remove ships that are no longer present
     departed = _known_mmsi - current_mmsi
