@@ -1,8 +1,12 @@
 {
   "ignored_ships": [
     {
-      "name": "Amanda",
+      "name": "AMANDA",
       "mmsi": "259032810"
+    },
+    {
+      "name": "TERNESKJAER",
+      "mmsi": "258015890"
     }
   ]
 }
